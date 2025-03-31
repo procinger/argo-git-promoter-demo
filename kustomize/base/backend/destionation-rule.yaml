@@ -1,0 +1,13 @@
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: backend
+spec:
+  host: backend
+  subsets:
+    - name: stable
+      labels:
+        service.istio.io/canonical-revision: stable
+    - name: canary
+      labels:
+        service.istio.io/canonical-revision: canary

@@ -3,30 +3,30 @@ kind: Service
 metadata:
   labels:
     argocd.argoproj.io/instance: argo-git-promoter-demo
-  name: kargo-demo
+  name: gitops-promoter-demo
 spec:
   ports:
-    - name: kargo-demo
+    - name: gitops-promoter-demo
       port: 80
   selector:
-    app: kargo-demo
+    app: gitops-promoter-demo
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: kargo-demo
+    app: gitops-promoter-demo
     argocd.argoproj.io/instance: argo-git-promoter-demo
-  name: kargo-demo
+  name: gitops-promoter-demo
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: kargo-demo
+      app: gitops-promoter-demo
   template:
     metadata:
       labels:
-        app: kargo-demo
+        app: gitops-promoter-demo
     spec:
       containers:
         - env:
@@ -39,7 +39,7 @@ spec:
                 - /bin/sh
                 - -c
                 - '[ -f /run/nginx.pid ] && test -f /proc/$(cat /run/nginx.pid)/exe'
-          name: kargo-demo
+          name: gitops-promoter-demo
           ports:
             - containerPort: 80
               name: http

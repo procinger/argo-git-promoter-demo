@@ -1,0 +1,65 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: frontend
+  annotations:
+    argocd.argoproj.io/sync-wave: "200"
+  labels:
+    version: "1"
+    app.kubernetes.io/version: "1"
+spec:
+  analysis:
+    successfulRunHistoryLimit: 1
+    unsuccessfulRunHistoryLimit: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: frontend
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: frontend
+        sidecar.istio.io/inject: "true"
+        version: "1"
+    spec:
+      containers:
+        - name: frontend
+          image: ghcr.io/procinger/argo-git-promoter-demo-frontend:1.90.1
+          env:
+            - name: BACKEND_URL
+              value: http://backend
+          ports:
+            - containerPort: 8080
+              name: http
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "200m"
+            limits:
+              memory: "128Mi"
+              cpu: "300m"
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "test -f /proc/$(pidof frontend)/exe"
+          readinessProbe:
+            httpGet:
+              scheme: HTTP
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+  strategy:
+    canary:
+      canaryService: frontend-canary
+      stableService: frontend
+      steps:
+        - setWeight: 25
+        - pause: {duration: 30}
+        - analysis:
+            templates:
+              - templateName: frontend-smoke-test
+        - setWeight: 100

@@ -1,0 +1,33 @@
+kind: AnalysisRun
+apiVersion: argoproj.io/v1alpha1
+metadata:
+  name: http-smoke-test
+  annotations:
+    argocd.argoproj.io/sync-options: Force=true,Replace=true
+    argocd.argoproj.io/sync-wave: "100"
+spec:
+  metrics:
+    - name: http-smoke-test
+      interval: 5s
+      count: 5
+      failureLimit: 0
+      provider:
+        job:
+          spec:
+            template:
+              spec:
+                containers:
+                  - name: http-smoke-test
+                    image: curlimages/curl:latest
+                    command:
+                      - /bin/sh
+                      - -c
+                      - |
+                        sleep 10 && (curl --insecure -H "canary: true" -L -o /dev/null -s -w %{http_code} \
+                        http://gitops-promoter-demo | grep ${HTTP_SUCCESS_CODE}) || (echo "http test failed. expected ${HTTP_SUCCESS_CODE}"; exit 1)
+                    imagePullPolicy: IfNotPresent
+                    env:
+                      - name: HTTP_SUCCESS_CODE
+                        value: "200"
+                restartPolicy: Never
+            backoffLimit: 1

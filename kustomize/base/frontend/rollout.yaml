@@ -1,0 +1,86 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: frontend
+  labels:
+    version: "1"
+    app.kubernetes.io/version: "1"
+spec:
+  analysis:
+    successfulRunHistoryLimit: 1
+    unsuccessfulRunHistoryLimit: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: frontend
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: frontend
+        sidecar.istio.io/inject: "true"
+        version: "1"
+    spec:
+      containers:
+        - name: frontend
+          image: ghcr.io/procinger/argo-git-promoter-demo-frontend:1.189.1
+          ports:
+            - containerPort: 8080
+              name: http
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "200m"
+            limits:
+              memory: "128Mi"
+              cpu: "300m"
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "test -f /proc/$(pidof frontend)/exe"
+          readinessProbe:
+            httpGet:
+              scheme: HTTP
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          volumeMounts:
+            - name: pod-labels
+              mountPath: /etc/pod-labels
+      volumes:
+        - name: pod-labels
+          downwardAPI:
+            items:
+              - path: "labels"
+                fieldRef:
+                  fieldPath: metadata.labels
+  strategy:
+    canary:
+      trafficRouting:
+        istio:
+          virtualService:
+            name: frontend-ingress
+            routes:
+              - ingress
+          destinationRule:
+            name: frontend
+            canarySubsetName: canary
+            stableSubsetName: stable
+      stableMetadata:
+        labels:
+          service.istio.io/canonical-revision: stable
+          backend_url: "backend-stable"
+      canaryMetadata:
+        labels:
+          service.istio.io/canonical-revision: canary
+          backend_url: "backend-canary"
+      steps:
+        - setWeight: 50
+        - pause: {duration: 30}
+        - analysis:
+            templates:
+              - templateName: frontend-smoke-test
+        - pause: {}

@@ -1,0 +1,8 @@
+.idea/
+
+**/git-creds.yaml
+demo-app/backend/version
+demo-app/backend/backend
+
+demo-app/frontend/version
+demo-app/frontend/frontend

@@ -1,0 +1,27 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: backend
+spec:
+  hosts:
+    - backend
+  http:
+    - name: backend
+      route:
+      - destination:
+          host: backend
+          subset: stable
+        weight: 100
+      - destination:
+          host: backend
+          subset: canary
+        weight: 0
+    - match:
+      - headers:
+          x-canary:
+            exact: "true"
+      route:
+        - destination:
+            host: backend
+            subset: canary
+          weight: 100

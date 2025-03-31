@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    version: "1"
+    app.kubernetes.io/version: "1"
+    backend_url: "backend"
+spec:
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app: frontend
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: frontend
+        backend_url: "backend"
+    spec:
+      containers:
+        - name: frontend
+          image: localhost:5001/frontend
+          ports:
+            - containerPort: 8080
+              name: http
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "200m"
+            limits:
+              memory: "128Mi"
+              cpu: "300m"
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "test -f /proc/$(pidof frontend)/exe"
+          readinessProbe:
+            httpGet:
+              scheme: HTTP
+              path: /version
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          volumeMounts:
+            - name: pod-labels
+              mountPath: /etc/pod-labels
+      volumes:
+        - name: pod-labels
+          downwardAPI:
+            items:
+              - path: "labels"
+                fieldRef:
+                  fieldPath: metadata.labels
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+spec:
+  ports:
+    - name: http
+      targetPort: 8080
+      port: 80
+  selector:
+    app: frontend

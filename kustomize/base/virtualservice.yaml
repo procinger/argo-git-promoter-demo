@@ -1,0 +1,20 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: frontend-ingress
+spec:
+  hosts:
+    - argo-demo.kubedev.net
+  gateways:
+    - istio-gateway/non-tls-gateway
+  http:
+    - name: ingress
+      route:
+        - destination:
+            host: frontend
+            subset: stable
+          weight: 100
+        - destination:
+            host: frontend
+            subset: canary
+          weight: 0

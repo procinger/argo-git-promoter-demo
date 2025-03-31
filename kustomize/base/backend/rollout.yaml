@@ -1,0 +1,76 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: backend
+  labels:
+    version: "1"
+    app.kubernetes.io/version: "1"
+spec:
+  analysis:
+    successfulRunHistoryLimit: 1
+    unsuccessfulRunHistoryLimit: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: backend
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: backend
+        sidecar.istio.io/inject: "true"
+        version: "1"
+    spec:
+      containers:
+        - name: backend
+          image: ghcr.io/procinger/argo-git-promoter-demo-backend:1.189.1
+          ports:
+            - containerPort: 8080
+              name: http
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "200m"
+            limits:
+              memory: "128Mi"
+              cpu: "300m"
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "test -f /proc/$(pidof backend)/exe"
+          readinessProbe:
+            httpGet:
+              scheme: HTTP
+              path: /version
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+  strategy:
+    canary:
+      stableService: backend-stable
+      canaryService: backend-canary
+      #trafficRouting:
+      #  istio:
+      #    virtualService:
+      #      name: backend
+      #      routes:
+      #        - backend
+      #    destinationRule:
+      #      name: backend
+      #      canarySubsetName: canary
+      #      stableSubsetName: stable
+      stableMetadata:
+        labels:
+          service.istio.io/canonical-revision: stable
+      canaryMetadata:
+        labels:
+          service.istio.io/canonical-revision: canary
+      steps:
+        - setWeight: 50
+        - pause: {duration: 30}
+        - analysis:
+            templates:
+              - templateName: backend-smoke-test
+        - pause: {}

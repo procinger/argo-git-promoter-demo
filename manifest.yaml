@@ -32,7 +32,7 @@ spec:
         - env:
             - name: FOO
               value: BAZ
-          image: ghcr.io/procinger/argo-git-promoter-demo:1.23.1
+          image: ghcr.io/procinger/argo-git-promoter-demo:1.29.1
           livenessProbe:
             exec:
               command:

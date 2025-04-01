@@ -23,8 +23,6 @@ spec:
   selector:
     matchLabels:
       app: gitops-promoter-demo
-  strategy:
-    canary: {}
   template:
     metadata:
       labels:

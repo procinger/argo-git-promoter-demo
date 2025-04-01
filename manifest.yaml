@@ -1,6 +1,8 @@
 apiVersion: v1
 kind: Service
 metadata:
+  annotations:
+    version: 1.29.1
   labels:
     argocd.argoproj.io/instance: argo-git-promoter-demo-dev
   name: gitops-promoter-demo
@@ -14,6 +16,8 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  annotations:
+    version: 1.29.1
   labels:
     app: gitops-promoter-demo
     argocd.argoproj.io/instance: argo-git-promoter-demo-dev
@@ -25,6 +29,8 @@ spec:
       app: gitops-promoter-demo
   template:
     metadata:
+      annotations:
+        version: 1.29.1
       labels:
         app: gitops-promoter-demo
     spec:
@@ -57,3 +63,38 @@ spec:
             requests:
               cpu: 200m
               memory: 128Mi
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisRun
+metadata:
+  annotations:
+    version: 1.29.1
+  labels:
+    argocd.argoproj.io/instance: argo-git-promoter-demo-dev
+  name: http-smoke-test
+spec:
+  metrics:
+    - count: 5
+      failureLimit: 0
+      interval: 5s
+      name: http-smoke-test
+      provider:
+        job:
+          spec:
+            backoffLimit: 1
+            template:
+              spec:
+                containers:
+                  - command:
+                      - /bin/sh
+                      - -c
+                      - |
+                        sleep 30 && (curl --insecure -H "canary: true" -L -o /dev/null -s -w %{http_code} \
+                        http://gitops-promoter-demo | grep ${HTTP_SUCCESS_CODE}) || (echo "http test failed. expected ${HTTP_SUCCESS_CODE}"; exit 1)
+                    env:
+                      - name: HTTP_SUCCESS_CODE
+                        value: "200"
+                    image: curlimages/curl:latest
+                    imagePullPolicy: IfNotPresent
+                    name: http-smoke-test
+                restartPolicy: Never

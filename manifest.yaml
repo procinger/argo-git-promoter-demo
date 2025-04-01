@@ -95,6 +95,10 @@ spec:
                     env:
                       - name: HTTP_SUCCESS_CODE
                         value: "200"
+                      - name: ANNOTATIONS
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.annotations
                     image: curlimages/curl:latest
                     imagePullPolicy: IfNotPresent
                     name: http-smoke-test

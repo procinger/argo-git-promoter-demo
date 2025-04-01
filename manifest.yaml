@@ -78,8 +78,7 @@ spec:
                       - /bin/sh
                       - -c
                       - |
-                        sleep 30 &&
-                        (curl --insecure -L -o /dev/null -s -w %{http_code} \
+                        sleep 30 && (curl --insecure -L -o /dev/null -s -w %{http_code} \
                         http://gitops-promoter-demo | grep ${HTTP_SUCCESS_CODE}) || (echo "http test failed. expected ${HTTP_SUCCESS_CODE}"; exit 1)
                     env:
                       - name: HTTP_SUCCESS_CODE

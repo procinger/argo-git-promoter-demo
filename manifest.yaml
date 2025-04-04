@@ -14,6 +14,8 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
   labels:
     app: gitops-promoter-demo
     argocd.argoproj.io/instance: argo-git-promoter-demo-prod

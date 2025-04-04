@@ -72,9 +72,6 @@ spec:
       name: http-smoke-test
       provider:
         job:
-          metadata:
-            annotations:
-              argocd.argoproj.io/sync-options: Force=true,Replace=true
           spec:
             backoffLimit: 1
             template:

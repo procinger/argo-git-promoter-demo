@@ -57,7 +57,7 @@ spec:
               memory: 128Mi
 ---
 apiVersion: argoproj.io/v1alpha1
-kind: AnalysisTemplate
+kind: AnalysisRun
 metadata:
   annotations:
     argocd.argoproj.io/sync-options: Force=true,Replace=true

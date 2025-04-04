@@ -11,6 +11,51 @@ spec:
   selector:
     app: gitops-promoter-demo
 ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: gitops-promoter-demo
+    argocd.argoproj.io/instance: argo-git-promoter-demo-dev
+  name: gitops-promoter-demo
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: gitops-promoter-demo
+  template:
+    metadata:
+      labels:
+        app: gitops-promoter-demo
+    spec:
+      containers:
+        - image: ghcr.io/procinger/argo-git-promoter-demo:1.39.1
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - '[ -f /run/nginx.pid ] && test -f /proc/$(cat /run/nginx.pid)/exe'
+          name: gitops-promoter-demo
+          ports:
+            - containerPort: 80
+              name: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            limits:
+              cpu: 300m
+              memory: 128Mi
+            requests:
+              cpu: 200m
+              memory: 128Mi
+---
 apiVersion: argoproj.io/v1alpha1
 kind: AnalysisTemplate
 metadata:
@@ -45,57 +90,3 @@ spec:
                     imagePullPolicy: IfNotPresent
                     name: http-smoke-test
                 restartPolicy: Never
----
-apiVersion: argoproj.io/v1alpha1
-kind: Rollout
-metadata:
-  labels:
-    app: gitops-promoter-demo
-    argocd.argoproj.io/instance: argo-git-promoter-demo-dev
-  name: gitops-promoter-demo
-spec:
-  replicas: 1
-  revisionHistoryLimit: 2
-  selector:
-    matchLabels:
-      app: gitops-promoter-demo
-  strategy:
-    canary:
-      stableService: gitops-promoter-demo
-      steps:
-        - setWeight: 90
-        - analysis:
-            templates:
-              - templateName: http-smoke-test
-        - setWeight: 100
-  template:
-    metadata:
-      labels:
-        app: gitops-promoter-demo
-    spec:
-      containers:
-        - image: ghcr.io/procinger/argo-git-promoter-demo:1.39.1
-          livenessProbe:
-            exec:
-              command:
-                - /bin/sh
-                - -c
-                - '[ -f /run/nginx.pid ] && test -f /proc/$(cat /run/nginx.pid)/exe'
-          name: gitops-promoter-demo
-          ports:
-            - containerPort: 80
-              name: http
-          readinessProbe:
-            httpGet:
-              path: /
-              port: http
-              scheme: HTTP
-            initialDelaySeconds: 10
-            periodSeconds: 5
-          resources:
-            limits:
-              cpu: 300m
-              memory: 128Mi
-            requests:
-              cpu: 200m
-              memory: 128Mi

@@ -191,7 +191,9 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "200"
   labels:
+    app.kubernetes.io/version: 1.83.1
     argocd.argoproj.io/instance: argo-git-promoter-demo-test
+    version: 1.83.1
   name: frontend
 spec:
   analysis:
@@ -219,6 +221,7 @@ spec:
       labels:
         app: frontend
         sidecar.istio.io/inject: "true"
+        version: 1.83.1
     spec:
       containers:
         - env:

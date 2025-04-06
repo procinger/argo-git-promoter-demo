@@ -7,6 +7,6 @@ To hydrate the manifests in this repository, run the following commands:
 
 git clone git@github.com:procinger/argo-git-promoter-demo.git
 # cd into the cloned directory
-git checkout ad4dac44ac3d36dc9da0d790a82669d1145e59a3
+git checkout 27d5b63af18853d9e1950be069f1fd616aa4619e
 kustomize build ./kustomize/overlays/dev
 ```

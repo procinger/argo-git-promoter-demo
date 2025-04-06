@@ -125,6 +125,7 @@ kind: Rollout
 metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "100"
+    sidecar.istio.io/inject: "true"
   labels:
     argocd.argoproj.io/instance: argo-git-promoter-demo-dev
   name: backend
@@ -151,8 +152,6 @@ spec:
         - setWeight: 100
   template:
     metadata:
-      annotations:
-        sidecar.istio.io/inject: "true"
       labels:
         app: backend
     spec:
@@ -188,6 +187,7 @@ kind: Rollout
 metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "200"
+    sidecar.istio.io/inject: "true"
   labels:
     argocd.argoproj.io/instance: argo-git-promoter-demo-dev
   name: frontend
@@ -214,8 +214,6 @@ spec:
         - setWeight: 100
   template:
     metadata:
-      annotations:
-        sidecar.istio.io/inject: "true"
       labels:
         app: frontend
     spec:

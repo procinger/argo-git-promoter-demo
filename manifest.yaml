@@ -26,6 +26,34 @@ spec:
   selector:
     app: backend
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    argocd.argoproj.io/instance: argo-git-promoter-demo-prod
+  name: frontend
+spec:
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+  selector:
+    app: frontend
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    argocd.argoproj.io/instance: argo-git-promoter-demo-prod
+  name: frontend-canary
+spec:
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+  selector:
+    app: frontend
+---
 apiVersion: argoproj.io/v1alpha1
 kind: AnalysisTemplate
 metadata:
@@ -60,8 +88,43 @@ spec:
                 restartPolicy: Never
 ---
 apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  labels:
+    argocd.argoproj.io/instance: argo-git-promoter-demo-prod
+  name: frontend-smoke-test
+spec:
+  metrics:
+    - count: 5
+      failureLimit: 0
+      interval: 5s
+      name: frontend-smoke-test
+      provider:
+        job:
+          spec:
+            backoffLimit: 1
+            template:
+              spec:
+                containers:
+                  - command:
+                      - /bin/sh
+                      - -c
+                      - |
+                        (curl --insecure -L -o /dev/null -s -w %{http_code} \
+                        http://frontend-canary | grep ${HTTP_SUCCESS_CODE}) || (echo "http test failed. expected ${HTTP_SUCCESS_CODE}"; exit 1)
+                    env:
+                      - name: HTTP_SUCCESS_CODE
+                        value: "200"
+                    image: curlimages/curl:latest
+                    imagePullPolicy: IfNotPresent
+                    name: frontend-smoke-test
+                restartPolicy: Never
+---
+apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "100"
   labels:
     argocd.argoproj.io/instance: argo-git-promoter-demo-prod
   name: backend
@@ -92,7 +155,7 @@ spec:
         app: backend
     spec:
       containers:
-        - image: ghcr.io/procinger/argo-git-promoter-demo-backend:1.67.1
+        - image: ghcr.io/procinger/argo-git-promoter-demo-backend:1.68.1
           livenessProbe:
             exec:
               command:
@@ -106,6 +169,67 @@ spec:
           readinessProbe:
             httpGet:
               path: /version
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            limits:
+              cpu: 300m
+              memory: 128Mi
+            requests:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "100"
+  labels:
+    argocd.argoproj.io/instance: argo-git-promoter-demo-prod
+  name: frontend
+spec:
+  analysis:
+    successfulRunHistoryLimit: 1
+    unsuccessfulRunHistoryLimit: 1
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: frontend
+  strategy:
+    canary:
+      canaryService: frontend-canary
+      stableService: frontend
+      steps:
+        - setWeight: 25
+        - pause:
+            duration: 30
+        - analysis:
+            templates:
+              - templateName: frontend-smoke-test
+        - setWeight: 100
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - image: ghcr.io/procinger/argo-git-promoter-demo-frontend:1.68.1
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - test -f /proc/$(pidof frontend)/exe
+          name: frontend
+          ports:
+            - containerPort: 8081
+              name: http
+          readinessProbe:
+            httpGet:
+              path: /
               port: http
               scheme: HTTP
             initialDelaySeconds: 10

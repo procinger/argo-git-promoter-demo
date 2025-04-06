@@ -185,7 +185,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
   annotations:
-    argocd.argoproj.io/sync-wave: "100"
+    argocd.argoproj.io/sync-wave: "200"
   labels:
     argocd.argoproj.io/instance: argo-git-promoter-demo-dev
   name: frontend

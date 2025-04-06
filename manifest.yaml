@@ -225,7 +225,7 @@ spec:
                 - test -f /proc/$(pidof frontend)/exe
           name: frontend
           ports:
-            - containerPort: 8081
+            - containerPort: 8080
               name: http
           readinessProbe:
             httpGet:

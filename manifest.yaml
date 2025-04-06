@@ -102,7 +102,7 @@ spec:
               name: http
           readinessProbe:
             httpGet:
-              path: /
+              path: /version
               port: http
               scheme: HTTP
             initialDelaySeconds: 10

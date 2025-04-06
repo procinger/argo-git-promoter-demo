@@ -126,7 +126,9 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "100"
   labels:
+    app.kubernetes.io/version: 1.83.1
     argocd.argoproj.io/instance: argo-git-promoter-demo-dev
+    version: 1.83.1
   name: backend
 spec:
   analysis:
@@ -154,6 +156,7 @@ spec:
       labels:
         app: backend
         sidecar.istio.io/inject: "true"
+        version: 1.83.1
     spec:
       containers:
         - image: ghcr.io/procinger/argo-git-promoter-demo-backend:1.83.1
@@ -246,3 +249,20 @@ spec:
             requests:
               cpu: 200m
               memory: 128Mi
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  labels:
+    argocd.argoproj.io/instance: argo-git-promoter-demo-dev
+  name: istio-pods
+spec:
+  namespaceSelector:
+    matchNames:
+      - argo-git-promoter-dev
+  podMetricsEndpoints:
+    - path: stats/prometheus
+      port: http-envoy-prom
+  selector:
+    matchLabels:
+      istio: monitor

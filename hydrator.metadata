@@ -1,6 +1,6 @@
 {
   "repoURL": "git@github.com:procinger/argo-git-promoter-demo.git",
-  "drySha": "69572b756411254d1f64821a0d7f835700f616fb",
+  "drySha": "609aadf979318d07642eeb48dd5e7b152b2c629d",
   "commands": [
     "kustomize build ./kustomize/overlays/test"
   ]

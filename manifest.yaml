@@ -66,6 +66,9 @@ metadata:
     argocd.argoproj.io/instance: argo-git-promoter-demo-prod
   name: backend
 spec:
+  analysis:
+    successfulRunHistoryLimit: 1
+    unsuccessfulRunHistoryLimit: 1
   replicas: 1
   revisionHistoryLimit: 3
   selector:

@@ -36,7 +36,7 @@ spec:
   ports:
     - name: http
       port: 80
-      targetPort: 8080
+      targetPort: 80
   selector:
     app: frontend
 ---
@@ -81,7 +81,7 @@ spec:
           image: nginx:latest
           name: frontend
           ports:
-            - containerPort: 8080
+            - containerPort: 80
               name: http
           resources:
             limits:

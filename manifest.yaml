@@ -139,7 +139,13 @@ spec:
       app: backend
   strategy:
     canary:
+      canaryMetadata:
+        labels:
+          version: canary
       canaryService: backend-canary
+      stableMetadata:
+        labels:
+          version: stable
       stableService: backend
       steps:
         - setWeight: 25
@@ -202,7 +208,13 @@ spec:
       app: frontend
   strategy:
     canary:
+      canaryMetadata:
+        labels:
+          version: canary
       canaryService: frontend-canary
+      stableMetadata:
+        labels:
+          version: stable
       stableService: frontend
       steps:
         - setWeight: 25
@@ -248,3 +260,64 @@ spec:
             requests:
               cpu: 200m
               memory: 128Mi
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  labels:
+    argocd.argoproj.io/instance: argo-git-promoter-demo-test
+  name: backend
+spec:
+  host: backend
+  subsets:
+    - labels:
+        version: stable
+      name: stable
+    - labels:
+        version: canary
+      name: canary
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  labels:
+    argocd.argoproj.io/instance: argo-git-promoter-demo-test
+  name: frontend
+spec:
+  host: frontend
+  subsets:
+    - labels:
+        version: stable
+      name: stable
+    - labels:
+        version: canary
+      name: canary
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  labels:
+    argocd.argoproj.io/instance: argo-git-promoter-demo-test
+  name: backend
+spec:
+  hosts:
+    - backend
+  http:
+    - match:
+        - headers:
+            x-canary:
+              exact: "true"
+      route:
+        - destination:
+            host: backend
+            port:
+              number: 80
+            subset: canary
+          weight: 100
+    - route:
+        - destination:
+            host: backend
+            port:
+              number: 80
+            subset: stable
+          weight: 100

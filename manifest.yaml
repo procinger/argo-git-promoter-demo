@@ -224,7 +224,7 @@ spec:
   gateways:
     - istio-gateway/non-tls-gateway
   hosts:
-    - gitops.kubedev.net
+    - test.kubedev.net
   http:
     - route:
         - destination:

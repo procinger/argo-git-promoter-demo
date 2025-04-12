@@ -40,20 +40,6 @@ spec:
   selector:
     app: frontend
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    argocd.argoproj.io/instance: argo-git-promoter-demo-prod
-  name: frontend-canary
-spec:
-  ports:
-    - name: http
-      port: 80
-      targetPort: 8080
-  selector:
-    app: frontend
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:

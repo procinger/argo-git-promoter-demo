@@ -79,23 +79,10 @@ spec:
             - name: BACKEND_URL
               value: http://backend
           image: nginx:latest
-          livenessProbe:
-            exec:
-              command:
-                - /bin/sh
-                - -c
-                - test -f /proc/$(pidof nginx)/exe
           name: frontend
           ports:
             - containerPort: 8080
               name: http
-          readinessProbe:
-            httpGet:
-              path: /
-              port: http
-              scheme: HTTP
-            initialDelaySeconds: 10
-            periodSeconds: 5
           resources:
             limits:
               cpu: 300m

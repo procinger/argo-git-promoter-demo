@@ -286,7 +286,7 @@ spec:
             host: frontend-canary
             port:
               number: 80
-          weight: 0
+          weight: 100
     - route:
         - destination:
             host: frontend

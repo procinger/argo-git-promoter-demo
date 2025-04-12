@@ -224,7 +224,7 @@ spec:
   gateways:
     - istio-gateway/non-tls-gateway
   hosts:
-    - test.kubedev.net
+    - argo-demo.kubedev.net
   http:
     - route:
         - destination:

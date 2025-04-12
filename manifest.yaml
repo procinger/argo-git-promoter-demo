@@ -278,5 +278,4 @@ spec:
             host: frontend
             port:
               number: 80
-            subset: stable
           weight: 100

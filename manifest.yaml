@@ -84,7 +84,7 @@ spec:
               command:
                 - /bin/sh
                 - -c
-                - test -f /proc/$(pidof frontend)/exe
+                - test -f /proc/$(pidof nginx)/exe
           name: frontend
           ports:
             - containerPort: 8080

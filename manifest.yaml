@@ -150,6 +150,7 @@ spec:
         - analysis:
             templates:
               - templateName: backend-smoke-test
+        - pause: null
   template:
     metadata:
       labels:
@@ -214,6 +215,7 @@ spec:
         - analysis:
             templates:
               - templateName: frontend-smoke-test
+        - pause: null
   template:
     metadata:
       labels:

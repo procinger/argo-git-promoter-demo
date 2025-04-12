@@ -304,7 +304,7 @@ spec:
             port:
               number: 80
             subset: canary
-          weight: 100
+          weight: 0
     - route:
         - destination:
             host: frontend

@@ -290,6 +290,20 @@ spec:
   hosts:
     - argo-demo.kubedev.net
   http:
+    - headers:
+        request:
+          add:
+            x-canary: "true"
+      match:
+        - headers:
+            cookie:
+              regex: .*canary=true.*
+      route:
+        - destination:
+            host: frontend-canary
+            port:
+              number: 80
+          weight: 0
     - route:
         - destination:
             host: frontend

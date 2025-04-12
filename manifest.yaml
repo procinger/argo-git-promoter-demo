@@ -126,9 +126,9 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "100"
   labels:
-    app.kubernetes.io/version: 1.90.1
+    app.kubernetes.io/version: 1.91.1
     argocd.argoproj.io/instance: argo-git-promoter-demo-prod
-    version: 1.90.1
+    version: 1.91.1
   name: backend
 spec:
   analysis:
@@ -150,16 +150,15 @@ spec:
         - analysis:
             templates:
               - templateName: backend-smoke-test
-        - setWeight: 100
   template:
     metadata:
       labels:
         app: backend
         sidecar.istio.io/inject: "true"
-        version: 1.90.1
+        version: 1.91.1
     spec:
       containers:
-        - image: ghcr.io/procinger/argo-git-promoter-demo-backend:1.90.1
+        - image: ghcr.io/procinger/argo-git-promoter-demo-backend:1.91.1
           livenessProbe:
             exec:
               command:
@@ -191,9 +190,9 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "200"
   labels:
-    app.kubernetes.io/version: 1.90.1
+    app.kubernetes.io/version: 1.91.1
     argocd.argoproj.io/instance: argo-git-promoter-demo-prod
-    version: 1.90.1
+    version: 1.91.1
   name: frontend
 spec:
   analysis:
@@ -215,19 +214,18 @@ spec:
         - analysis:
             templates:
               - templateName: frontend-smoke-test
-        - setWeight: 100
   template:
     metadata:
       labels:
         app: frontend
         sidecar.istio.io/inject: "true"
-        version: 1.90.1
+        version: 1.91.1
     spec:
       containers:
         - env:
             - name: BACKEND_URL
               value: http://backend
-          image: ghcr.io/procinger/argo-git-promoter-demo-frontend:1.90.1
+          image: ghcr.io/procinger/argo-git-promoter-demo-frontend:1.91.1
           livenessProbe:
             exec:
               command:

@@ -262,61 +262,35 @@ spec:
               memory: 128Mi
 ---
 apiVersion: networking.istio.io/v1beta1
-kind: DestinationRule
-metadata:
-  labels:
-    argocd.argoproj.io/instance: argo-git-promoter-demo-prod
-  name: backend
-spec:
-  host: backend
-  subsets:
-    - labels:
-        version: stable
-      name: stable
-    - labels:
-        version: canary
-      name: canary
----
-apiVersion: networking.istio.io/v1beta1
-kind: DestinationRule
-metadata:
-  labels:
-    argocd.argoproj.io/instance: argo-git-promoter-demo-prod
-  name: frontend
-spec:
-  host: frontend
-  subsets:
-    - labels:
-        version: stable
-      name: stable
-    - labels:
-        version: canary
-      name: canary
----
-apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
   labels:
     argocd.argoproj.io/instance: argo-git-promoter-demo-prod
-  name: backend
+  name: frontend-ingress
 spec:
+  gateways:
+    - istio-gateway/non-tls-gateway
   hosts:
-    - backend
+    - gitops.kubedev.net
   http:
-    - match:
+    - headers:
+        request:
+          add:
+            x-canary: "true"
+      match:
         - headers:
-            x-canary:
-              exact: "true"
+            cookie:
+              regex: .*canary=true.*
       route:
         - destination:
-            host: backend-canary
+            host: frontend-canary
             port:
               number: 80
             subset: canary
           weight: 100
     - route:
         - destination:
-            host: backend
+            host: frontend
             port:
               number: 80
             subset: stable

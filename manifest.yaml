@@ -303,12 +303,10 @@ spec:
             host: frontend-canary
             port:
               number: 80
-            subset: canary
-          weight: 100
+          weight: 0
     - route:
         - destination:
             host: frontend
             port:
               number: 80
-            subset: stable
           weight: 100

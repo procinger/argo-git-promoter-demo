@@ -309,7 +309,7 @@ spec:
               exact: "true"
       route:
         - destination:
-            host: backend
+            host: backend-canary
             port:
               number: 80
             subset: canary

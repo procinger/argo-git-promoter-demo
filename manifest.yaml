@@ -212,12 +212,12 @@ spec:
         istio:
           destinationRule:
             canarySubsetName: canary
-            name: rollout-destrule
+            name: frontend
             stableSubsetName: stable
           virtualService:
-            name: rollout-vsvc
+            name: frontend-ingress
             routes:
-              - primary
+              - ingress
   template:
     metadata:
       labels:

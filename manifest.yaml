@@ -179,9 +179,9 @@ apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
   labels:
-    app.kubernetes.io/version: 1.141.1
+    app.kubernetes.io/version: 1.142.1
     argocd.argoproj.io/instance: argo-git-promoter-demo-test
-    version: 1.141.1
+    version: 1.142.1
   name: frontend
 spec:
   analysis:
@@ -223,13 +223,13 @@ spec:
       labels:
         app: frontend
         sidecar.istio.io/inject: "true"
-        version: 1.141.1
+        version: 1.142.1
     spec:
       containers:
         - env:
             - name: BACKEND_URL
               value: http://backend
-          image: ghcr.io/procinger/argo-git-promoter-demo-frontend:1.141.1
+          image: ghcr.io/procinger/argo-git-promoter-demo-frontend:1.142.1
           livenessProbe:
             exec:
               command:

@@ -96,9 +96,9 @@ apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
   labels:
-    app.kubernetes.io/version: 1.146.1
+    app.kubernetes.io/version: 1.147.1
     argocd.argoproj.io/instance: argo-git-promoter-demo-prod
-    version: 1.146.1
+    version: 1.147.1
   name: backend
 spec:
   analysis:
@@ -140,10 +140,10 @@ spec:
       labels:
         app: backend
         sidecar.istio.io/inject: "true"
-        version: 1.146.1
+        version: 1.147.1
     spec:
       containers:
-        - image: ghcr.io/procinger/argo-git-promoter-demo-backend:1.146.1
+        - image: ghcr.io/procinger/argo-git-promoter-demo-backend:1.147.1
           livenessProbe:
             exec:
               command:
@@ -173,9 +173,9 @@ apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
   labels:
-    app.kubernetes.io/version: 1.146.1
+    app.kubernetes.io/version: 1.147.1
     argocd.argoproj.io/instance: argo-git-promoter-demo-prod
-    version: 1.146.1
+    version: 1.147.1
   name: frontend
 spec:
   analysis:
@@ -217,13 +217,13 @@ spec:
       labels:
         app: frontend
         sidecar.istio.io/inject: "true"
-        version: 1.146.1
+        version: 1.147.1
     spec:
       containers:
         - env:
             - name: BACKEND_URL
               value: http://backend
-          image: ghcr.io/procinger/argo-git-promoter-demo-frontend:1.146.1
+          image: ghcr.io/procinger/argo-git-promoter-demo-frontend:1.147.1
           livenessProbe:
             exec:
               command:
@@ -248,6 +248,35 @@ spec:
             requests:
               cpu: 200m
               memory: 128Mi
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  labels:
+    argocd.argoproj.io/instance: argo-git-promoter-demo-prod
+  name: forward-x-canary-header
+spec:
+  configPatches:
+    - applyTo: HTTP_FILTER
+      match:
+        context: SIDECAR_OUTBOUND
+        listener:
+          filterChain:
+            filter:
+              name: envoy.filters.network.http_connection_manager
+      patch:
+        operation: MERGE
+        value:
+          typed_config:
+            '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+            request_headers_to_add:
+              - append: true
+                header:
+                  key: x-canary
+                  value: '%REQ(x-canary)%'
+  workloadSelector:
+    labels:
+      app: frontend
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: DestinationRule
@@ -297,6 +326,10 @@ spec:
             host: backend
             subset: stable
           weight: 100
+    - match:
+        - headers:
+            x-canary:
+              exact: "true"
         - destination:
             host: backend
             subset: canary

@@ -114,15 +114,6 @@ spec:
       canaryMetadata:
         labels:
           service.istio.io/canonical-revision: canary
-      istio:
-        destinationRule:
-          canarySubsetName: canary
-          name: backend
-          stableSubsetName: stable
-        virtualService:
-          name: backend
-          routes:
-            - backend
       stableMetadata:
         labels:
           service.istio.io/canonical-revision: stable
@@ -134,6 +125,16 @@ spec:
             templates:
               - templateName: backend-smoke-test
         - pause: {}
+      trafficRouting:
+        istio:
+          destinationRule:
+            canarySubsetName: canary
+            name: backend
+            stableSubsetName: stable
+          virtualService:
+            name: backend
+            routes:
+              - backend
   template:
     metadata:
       labels:

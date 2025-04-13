@@ -40,20 +40,6 @@ spec:
   selector:
     app: frontend
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    argocd.argoproj.io/instance: argo-git-promoter-demo-dev
-  name: frontend-canary
-spec:
-  ports:
-    - name: http
-      port: 80
-      targetPort: 8080
-  selector:
-    app: frontend
----
 apiVersion: argoproj.io/v1alpha1
 kind: AnalysisTemplate
 metadata:
@@ -211,11 +197,9 @@ spec:
       canaryMetadata:
         labels:
           version: canary
-      canaryService: frontend-canary
       stableMetadata:
         labels:
           version: stable
-      stableService: frontend
       steps:
         - setWeight: 25
         - pause:
@@ -224,6 +208,16 @@ spec:
             templates:
               - templateName: frontend-smoke-test
         - pause: {}
+      trafficRouting:
+        istio:
+          destinationRule:
+            canarySubsetName: canary
+            name: rollout-destrule
+            stableSubsetName: stable
+          virtualService:
+            name: rollout-vsvc
+            routes:
+              - primary
   template:
     metadata:
       labels:
@@ -279,6 +273,22 @@ spec:
       istio: monitor
 ---
 apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  labels:
+    argocd.argoproj.io/instance: argo-git-promoter-demo-dev
+  name: frontend
+spec:
+  host: frontend
+  subsets:
+    - labels:
+        version: stable
+      name: stable
+    - labels:
+        version: canary
+      name: canary
+---
+apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
   labels:
@@ -290,14 +300,13 @@ spec:
   hosts:
     - argo-demo.kubedev.net
   http:
-    - route:
-        - destination:
-            host: frontend-canary
-            port:
-              number: 80
-            weight: 0
+    - name: ingress
+      route:
         - destination:
             host: frontend
-            port:
-              number: 80
+            subset: stable
           weight: 100
+        - destination:
+            host: frontend
+            subset: canary
+          weight: 0

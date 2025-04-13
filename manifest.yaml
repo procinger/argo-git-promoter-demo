@@ -197,13 +197,11 @@ spec:
       canaryMetadata:
         labels:
           service.istio.io/canonical-revision: canary
-          version: canary
       stableMetadata:
         labels:
           service.istio.io/canonical-revision: stable
-          version: stable
       steps:
-        - setWeight: 25
+        - setWeight: 50
         - pause:
             duration: 30
         - analysis:
@@ -284,10 +282,10 @@ spec:
   host: frontend
   subsets:
     - labels:
-        version: stable
+        service.istio.io/canonical-revision: stable
       name: stable
     - labels:
-        version: canary
+        service.istio.io/canonical-revision: canary
       name: canary
 ---
 apiVersion: networking.istio.io/v1beta1

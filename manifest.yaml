@@ -114,11 +114,9 @@ spec:
       canaryMetadata:
         labels:
           service.istio.io/canonical-revision: canary
-      canaryService: backend-canary
       stableMetadata:
         labels:
           service.istio.io/canonical-revision: stable
-      stableService: backend
       steps:
         - setWeight: 50
         - pause:

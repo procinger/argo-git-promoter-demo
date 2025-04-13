@@ -17,6 +17,20 @@ kind: Service
 metadata:
   labels:
     argocd.argoproj.io/instance: argo-git-promoter-demo-dev
+  name: backend-canary
+spec:
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8081
+  selector:
+    app: backend
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    argocd.argoproj.io/instance: argo-git-promoter-demo-dev
   name: frontend
 spec:
   ports:
@@ -96,9 +110,9 @@ apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
   labels:
-    app.kubernetes.io/version: 1.140.1
+    app.kubernetes.io/version: 1.141.1
     argocd.argoproj.io/instance: argo-git-promoter-demo-dev
-    version: 1.140.1
+    version: 1.141.1
   name: backend
 spec:
   analysis:
@@ -140,10 +154,10 @@ spec:
       labels:
         app: backend
         sidecar.istio.io/inject: "true"
-        version: 1.140.1
+        version: 1.141.1
     spec:
       containers:
-        - image: ghcr.io/procinger/argo-git-promoter-demo-backend:1.140.1
+        - image: ghcr.io/procinger/argo-git-promoter-demo-backend:1.141.1
           livenessProbe:
             exec:
               command:
@@ -173,9 +187,9 @@ apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
   labels:
-    app.kubernetes.io/version: 1.140.1
+    app.kubernetes.io/version: 1.141.1
     argocd.argoproj.io/instance: argo-git-promoter-demo-dev
-    version: 1.140.1
+    version: 1.141.1
   name: frontend
 spec:
   analysis:
@@ -217,13 +231,13 @@ spec:
       labels:
         app: frontend
         sidecar.istio.io/inject: "true"
-        version: 1.140.1
+        version: 1.141.1
     spec:
       containers:
         - env:
             - name: BACKEND_URL
               value: http://backend
-          image: ghcr.io/procinger/argo-git-promoter-demo-frontend:1.140.1
+          image: ghcr.io/procinger/argo-git-promoter-demo-frontend:1.141.1
           livenessProbe:
             exec:
               command:
@@ -271,22 +285,6 @@ kind: DestinationRule
 metadata:
   labels:
     argocd.argoproj.io/instance: argo-git-promoter-demo-dev
-  name: backend
-spec:
-  host: backend
-  subsets:
-    - labels:
-        service.istio.io/canonical-revision: stable
-      name: stable
-    - labels:
-        service.istio.io/canonical-revision: canary
-      name: canary
----
-apiVersion: networking.istio.io/v1beta1
-kind: DestinationRule
-metadata:
-  labels:
-    argocd.argoproj.io/instance: argo-git-promoter-demo-dev
   name: frontend
 spec:
   host: frontend
@@ -315,7 +313,7 @@ spec:
             subset: stable
           weight: 100
         - destination:
-            host: backend
+            host: backend-canary
             subset: canary
           weight: 0
 ---

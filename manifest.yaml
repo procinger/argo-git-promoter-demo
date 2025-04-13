@@ -3,20 +3,6 @@ kind: Service
 metadata:
   labels:
     argocd.argoproj.io/instance: argo-git-promoter-demo-test
-  name: backend
-spec:
-  ports:
-    - name: http
-      port: 80
-      targetPort: 8081
-  selector:
-    app: backend
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    argocd.argoproj.io/instance: argo-git-promoter-demo-test
   name: frontend
 spec:
   ports:

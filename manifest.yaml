@@ -128,9 +128,11 @@ spec:
       canaryMetadata:
         labels:
           service.istio.io/canonical-revision: canary
+      canaryService: backend-canary
       stableMetadata:
         labels:
           service.istio.io/canonical-revision: stable
+      stableService: backend
       steps:
         - setWeight: 25
         - pause:
@@ -139,16 +141,6 @@ spec:
             templates:
               - templateName: backend-smoke-test
         - pause: {}
-      trafficRouting:
-        istio:
-          destinationRule:
-            canarySubsetName: canary
-            name: backend
-            stableSubsetName: stable
-          virtualService:
-            name: backend
-            routes:
-              - backend
   template:
     metadata:
       labels:

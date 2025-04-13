@@ -17,20 +17,6 @@ kind: Service
 metadata:
   labels:
     argocd.argoproj.io/instance: argo-git-promoter-demo-dev
-  name: backend-canary
-spec:
-  ports:
-    - name: http
-      port: 80
-      targetPort: 8081
-  selector:
-    app: backend
----
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    argocd.argoproj.io/instance: argo-git-promoter-demo-dev
   name: frontend
 spec:
   ports:
@@ -127,12 +113,10 @@ spec:
     canary:
       canaryMetadata:
         labels:
-          version: canary
-      canaryService: backend-canary
+          service.istio.io/canonical-revision: canary
       stableMetadata:
         labels:
-          version: stable
-      stableService: backend
+          service.istio.io/canonical-revision: stable
       steps:
         - setWeight: 25
         - pause:
@@ -141,6 +125,16 @@ spec:
             templates:
               - templateName: backend-smoke-test
         - pause: {}
+      trafficRouting:
+        istio:
+          destinationRule:
+            canarySubsetName: canary
+            name: backend
+            stableSubsetName: stable
+          virtualService:
+            name: backend
+            routes:
+              - backend
   template:
     metadata:
       labels:
@@ -277,6 +271,22 @@ kind: DestinationRule
 metadata:
   labels:
     argocd.argoproj.io/instance: argo-git-promoter-demo-dev
+  name: backend
+spec:
+  host: backend
+  subsets:
+    - labels:
+        service.istio.io/canonical-revision: stable
+      name: stable
+    - labels:
+        service.istio.io/canonical-revision: canary
+      name: canary
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  labels:
+    argocd.argoproj.io/instance: argo-git-promoter-demo-dev
   name: frontend
 spec:
   host: frontend
@@ -287,6 +297,27 @@ spec:
     - labels:
         service.istio.io/canonical-revision: canary
       name: canary
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  labels:
+    argocd.argoproj.io/instance: argo-git-promoter-demo-dev
+  name: backend
+spec:
+  hosts:
+    - backend
+  http:
+    - name: backend
+      route:
+        - destination:
+            host: backend
+            subset: stable
+          weight: 100
+        - destination:
+            host: backend
+            subset: canary
+          weight: 0
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService

@@ -97,7 +97,7 @@ spec:
                       - -c
                       - |
                         (curl --insecure -L -o /dev/null -s -w %{http_code} \
-                        http://frontend-canary | grep ${HTTP_SUCCESS_CODE}) || (echo "http test failed. expected ${HTTP_SUCCESS_CODE}"; exit 1)
+                        http://frontend | grep ${HTTP_SUCCESS_CODE}) || (echo "http test failed. expected ${HTTP_SUCCESS_CODE}"; exit 1)
                     env:
                       - name: HTTP_SUCCESS_CODE
                         value: "200"

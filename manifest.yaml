@@ -118,7 +118,7 @@ spec:
         labels:
           service.istio.io/canonical-revision: stable
       steps:
-        - setWeight: 50
+        - setWeight: 0
         - pause:
             duration: 30
         - analysis:
@@ -343,6 +343,10 @@ spec:
             host: backend
             subset: stable
           weight: 100
+        - destination:
+            host: backend
+            subset: canary
+          weight: 0
     - match:
         - headers:
             x-canary:
@@ -351,7 +355,7 @@ spec:
         - destination:
             host: backend
             subset: canary
-          weight: 0
+          weight: 100
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService

@@ -128,7 +128,7 @@ spec:
       trafficRouting:
         istio:
           destinationRule:
-            canarySubsetName: stable
+            canarySubsetName: canary
             name: backend
             stableSubsetName: stable
           virtualService:

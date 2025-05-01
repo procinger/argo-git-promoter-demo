@@ -3,45 +3,236 @@ kind: Service
 metadata:
   labels:
     argocd.argoproj.io/instance: argo-git-promoter-demo-test
-  name: gitops-promoter-demo
+  name: backend
 spec:
   ports:
-    - name: gitops-promoter-demo
+    - name: http
       port: 80
+      targetPort: 8081
   selector:
-    app: gitops-promoter-demo
+    app: backend
 ---
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: v1
+kind: Service
 metadata:
   labels:
-    app: gitops-promoter-demo
     argocd.argoproj.io/instance: argo-git-promoter-demo-test
-  name: gitops-promoter-demo
+  name: frontend
 spec:
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+  selector:
+    app: frontend
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  labels:
+    argocd.argoproj.io/instance: argo-git-promoter-demo-test
+  name: backend-smoke-test
+spec:
+  metrics:
+    - count: 5
+      failureLimit: 0
+      interval: 5s
+      name: backend-smoke-test
+      provider:
+        job:
+          spec:
+            backoffLimit: 1
+            template:
+              spec:
+                containers:
+                  - command:
+                      - /bin/sh
+                      - -c
+                      - |
+                        (curl --insecure -L -o /dev/null -s -w %{http_code} \
+                        http://backend/version | grep ${HTTP_SUCCESS_CODE}) || (echo "http test failed. expected ${HTTP_SUCCESS_CODE}"; exit 1)
+                    env:
+                      - name: HTTP_SUCCESS_CODE
+                        value: "200"
+                    image: curlimages/curl:latest
+                    imagePullPolicy: IfNotPresent
+                    name: backend-smoke-test
+                restartPolicy: Never
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  labels:
+    argocd.argoproj.io/instance: argo-git-promoter-demo-test
+  name: frontend-smoke-test
+spec:
+  metrics:
+    - count: 5
+      failureLimit: 0
+      interval: 5s
+      name: frontend-smoke-test
+      provider:
+        job:
+          spec:
+            backoffLimit: 1
+            template:
+              spec:
+                containers:
+                  - command:
+                      - /bin/sh
+                      - -c
+                      - |
+                        (curl --insecure -L -o /dev/null -s -w %{http_code} \
+                        http://frontend | grep ${HTTP_SUCCESS_CODE}) || (echo "http test failed. expected ${HTTP_SUCCESS_CODE}"; exit 1)
+                    env:
+                      - name: HTTP_SUCCESS_CODE
+                        value: "200"
+                    image: curlimages/curl:latest
+                    imagePullPolicy: IfNotPresent
+                    name: frontend-smoke-test
+                restartPolicy: Never
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  labels:
+    app.kubernetes.io/version: 1.161.1
+    argocd.argoproj.io/instance: argo-git-promoter-demo-test
+    version: 1.161.1
+  name: backend
+spec:
+  analysis:
+    successfulRunHistoryLimit: 1
+    unsuccessfulRunHistoryLimit: 1
   replicas: 1
+  revisionHistoryLimit: 2
   selector:
     matchLabels:
-      app: gitops-promoter-demo
+      app: backend
+  strategy:
+    canary:
+      canaryMetadata:
+        labels:
+          service.istio.io/canonical-revision: canary
+      stableMetadata:
+        labels:
+          service.istio.io/canonical-revision: stable
+      steps:
+        - setWeight: 50
+        - pause:
+            duration: 30
+        - analysis:
+            templates:
+              - templateName: backend-smoke-test
+        - pause: {}
+      trafficRouting:
+        istio:
+          destinationRule:
+            canarySubsetName: stable
+            name: backend
+            stableSubsetName: stable
+          virtualService:
+            name: backend
+            routes:
+              - backend
   template:
     metadata:
       labels:
-        app: gitops-promoter-demo
+        app: backend
+        sidecar.istio.io/inject: "true"
+        version: 1.161.1
     spec:
       containers:
-        - env:
-            - name: FOO
-              value: BAZ
-          image: ghcr.io/procinger/argo-git-promoter-demo:1.21.1
+        - image: ghcr.io/procinger/argo-git-promoter-demo-backend:1.161.1
           livenessProbe:
             exec:
               command:
                 - /bin/sh
                 - -c
-                - '[ -f /run/nginx.pid ] && test -f /proc/$(cat /run/nginx.pid)/exe'
-          name: gitops-promoter-demo
+                - test -f /proc/$(pidof backend)/exe
+          name: backend
           ports:
-            - containerPort: 80
+            - containerPort: 8081
+              name: http
+          readinessProbe:
+            httpGet:
+              path: /version
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            limits:
+              cpu: 300m
+              memory: 128Mi
+            requests:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  labels:
+    app.kubernetes.io/version: 1.161.1
+    argocd.argoproj.io/instance: argo-git-promoter-demo-test
+    version: 1.161.1
+  name: frontend
+spec:
+  analysis:
+    successfulRunHistoryLimit: 1
+    unsuccessfulRunHistoryLimit: 1
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: frontend
+  strategy:
+    canary:
+      canaryMetadata:
+        labels:
+          service.istio.io/canonical-revision: canary
+      stableMetadata:
+        labels:
+          service.istio.io/canonical-revision: stable
+      steps:
+        - setWeight: 50
+        - pause:
+            duration: 30
+        - analysis:
+            templates:
+              - templateName: frontend-smoke-test
+        - pause: {}
+      trafficRouting:
+        istio:
+          destinationRule:
+            canarySubsetName: canary
+            name: frontend
+            stableSubsetName: stable
+          virtualService:
+            name: frontend-ingress
+            routes:
+              - ingress
+  template:
+    metadata:
+      labels:
+        app: frontend
+        sidecar.istio.io/inject: "true"
+        version: 1.161.1
+    spec:
+      containers:
+        - env:
+            - name: BACKEND_URL
+              value: http://backend
+          image: ghcr.io/procinger/argo-git-promoter-demo-frontend:1.161.1
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - test -f /proc/$(pidof frontend)/exe
+          name: frontend
+          ports:
+            - containerPort: 8080
               name: http
           readinessProbe:
             httpGet:
@@ -57,3 +248,117 @@ spec:
             requests:
               cpu: 200m
               memory: 128Mi
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  labels:
+    argocd.argoproj.io/instance: argo-git-promoter-demo-test
+  name: forward-x-canary-header
+spec:
+  configPatches:
+    - applyTo: HTTP_FILTER
+      match:
+        context: SIDECAR_OUTBOUND
+        listener:
+          filterChain:
+            filter:
+              name: envoy.filters.network.http_connection_manager
+      patch:
+        operation: MERGE
+        value:
+          typed_config:
+            '@type': type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+            request_headers_to_add:
+              - append: true
+                header:
+                  key: x-canary
+                  value: '%REQ(x-canary)%'
+  workloadSelector:
+    labels:
+      app: frontend
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  labels:
+    argocd.argoproj.io/instance: argo-git-promoter-demo-test
+  name: backend
+spec:
+  host: backend
+  subsets:
+    - labels:
+        service.istio.io/canonical-revision: stable
+      name: stable
+    - labels:
+        service.istio.io/canonical-revision: canary
+      name: canary
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  labels:
+    argocd.argoproj.io/instance: argo-git-promoter-demo-test
+  name: frontend
+spec:
+  host: frontend
+  subsets:
+    - labels:
+        service.istio.io/canonical-revision: stable
+      name: stable
+    - labels:
+        service.istio.io/canonical-revision: canary
+      name: canary
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  labels:
+    argocd.argoproj.io/instance: argo-git-promoter-demo-test
+  name: backend
+spec:
+  hosts:
+    - backend
+  http:
+    - name: backend
+      route:
+        - destination:
+            host: backend
+            subset: stable
+          weight: 100
+        - destination:
+            host: backend
+            subset: canary
+          weight: 0
+    - match:
+        - headers:
+            x-canary:
+              exact: "true"
+      route:
+        - destination:
+            host: backend
+            subset: canary
+          weight: 100
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  labels:
+    argocd.argoproj.io/instance: argo-git-promoter-demo-test
+  name: frontend-ingress
+spec:
+  gateways:
+    - istio-gateway/non-tls-gateway
+  hosts:
+    - argo-demo.kubedev.net
+  http:
+    - name: ingress
+      route:
+        - destination:
+            host: frontend
+            subset: stable
+          weight: 100
+        - destination:
+            host: frontend
+            subset: canary
+          weight: 0

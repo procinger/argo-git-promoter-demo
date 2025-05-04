@@ -96,9 +96,9 @@ apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
   labels:
-    app.kubernetes.io/version: 1.169.1
+    app.kubernetes.io/version: 1.170.1
     argocd.argoproj.io/instance: argo-git-promoter-demo-prod
-    version: 1.169.1
+    version: 1.170.1
   name: backend
 spec:
   analysis:
@@ -140,10 +140,10 @@ spec:
       labels:
         app: backend
         sidecar.istio.io/inject: "true"
-        version: 1.169.1
+        version: 1.170.1
     spec:
       containers:
-        - image: ghcr.io/procinger/argo-git-promoter-demo-backend:1.169.1
+        - image: ghcr.io/procinger/argo-git-promoter-demo-backend:1.170.1
           livenessProbe:
             exec:
               command:
@@ -173,9 +173,9 @@ apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
   labels:
-    app.kubernetes.io/version: 1.169.1
+    app.kubernetes.io/version: 1.170.1
     argocd.argoproj.io/instance: argo-git-promoter-demo-prod
-    version: 1.169.1
+    version: 1.170.1
   name: frontend
 spec:
   analysis:
@@ -218,10 +218,10 @@ spec:
       labels:
         app: frontend
         sidecar.istio.io/inject: "true"
-        version: 1.169.1
+        version: 1.170.1
     spec:
       containers:
-        - image: ghcr.io/procinger/argo-git-promoter-demo-frontend:1.169.1
+        - image: ghcr.io/procinger/argo-git-promoter-demo-frontend:1.170.1
           livenessProbe:
             exec:
               command:

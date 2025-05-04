@@ -64,7 +64,7 @@ spec:
                       - -c
                       - |
                         (curl --insecure -L -o /dev/null -s -w %{http_code} \
-                        http://backend/version | grep ${HTTP_SUCCESS_CODE}) || (echo "http test failed. expected ${HTTP_SUCCESS_CODE}"; exit 1)
+                        http://backend-canary/version | grep ${HTTP_SUCCESS_CODE}) || (echo "http test failed. expected ${HTTP_SUCCESS_CODE}"; exit 1)
                     env:
                       - name: HTTP_SUCCESS_CODE
                         value: "200"
@@ -254,15 +254,15 @@ spec:
               cpu: 200m
               memory: 128Mi
           volumeMounts:
-            - mountPath: /etc/canary
-              name: canary
+            - mountPath: /etc/pod-labels
+              name: pod-labels
       volumes:
         - downwardAPI:
             items:
               - fieldRef:
                   fieldPath: metadata.labels
                 path: labels
-          name: canary
+          name: pod-labels
 ---
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor

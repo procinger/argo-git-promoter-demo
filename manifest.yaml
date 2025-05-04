@@ -3,12 +3,26 @@ kind: Service
 metadata:
   labels:
     argocd.argoproj.io/instance: argo-git-promoter-demo-test
-  name: backend
+  name: backend-canary
 spec:
   ports:
     - name: http
       port: 80
-      targetPort: 8081
+      targetPort: 8080
+  selector:
+    app: backend
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    argocd.argoproj.io/instance: argo-git-promoter-demo-test
+  name: backend-stable
+spec:
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
   selector:
     app: backend
 ---
@@ -50,7 +64,7 @@ spec:
                       - -c
                       - |
                         (curl --insecure -L -o /dev/null -s -w %{http_code} \
-                        http://backend/version | grep ${HTTP_SUCCESS_CODE}) || (echo "http test failed. expected ${HTTP_SUCCESS_CODE}"; exit 1)
+                        http://backend-canary/version | grep ${HTTP_SUCCESS_CODE}) || (echo "http test failed. expected ${HTTP_SUCCESS_CODE}"; exit 1)
                     env:
                       - name: HTTP_SUCCESS_CODE
                         value: "200"
@@ -96,9 +110,9 @@ apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
   labels:
-    app.kubernetes.io/version: 1.163.1
+    app.kubernetes.io/version: 1.185.1
     argocd.argoproj.io/instance: argo-git-promoter-demo-test
-    version: 1.163.1
+    version: 1.185.1
   name: backend
 spec:
   analysis:
@@ -114,9 +128,11 @@ spec:
       canaryMetadata:
         labels:
           service.istio.io/canonical-revision: canary
+      canaryService: backend-canary
       stableMetadata:
         labels:
           service.istio.io/canonical-revision: stable
+      stableService: backend-stable
       steps:
         - setWeight: 50
         - pause:
@@ -125,25 +141,15 @@ spec:
             templates:
               - templateName: backend-smoke-test
         - pause: {}
-      trafficRouting:
-        istio:
-          destinationRule:
-            canarySubsetName: canary
-            name: backend
-            stableSubsetName: stable
-          virtualService:
-            name: backend
-            routes:
-              - backend
   template:
     metadata:
       labels:
         app: backend
         sidecar.istio.io/inject: "true"
-        version: 1.163.1
+        version: 1.185.1
     spec:
       containers:
-        - image: ghcr.io/procinger/argo-git-promoter-demo-backend:1.163.1
+        - image: ghcr.io/procinger/argo-git-promoter-demo-backend:1.185.1
           livenessProbe:
             exec:
               command:
@@ -152,7 +158,7 @@ spec:
                 - test -f /proc/$(pidof backend)/exe
           name: backend
           ports:
-            - containerPort: 8081
+            - containerPort: 8080
               name: http
           readinessProbe:
             httpGet:
@@ -173,9 +179,9 @@ apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
   labels:
-    app.kubernetes.io/version: 1.163.1
+    app.kubernetes.io/version: 1.185.1
     argocd.argoproj.io/instance: argo-git-promoter-demo-test
-    version: 1.163.1
+    version: 1.185.1
   name: frontend
 spec:
   analysis:
@@ -190,9 +196,11 @@ spec:
     canary:
       canaryMetadata:
         labels:
+          backend_url: backend-canary
           service.istio.io/canonical-revision: canary
       stableMetadata:
         labels:
+          backend_url: backend-stable
           service.istio.io/canonical-revision: stable
       steps:
         - setWeight: 50
@@ -217,13 +225,10 @@ spec:
       labels:
         app: frontend
         sidecar.istio.io/inject: "true"
-        version: 1.163.1
+        version: 1.185.1
     spec:
       containers:
-        - env:
-            - name: BACKEND_URL
-              value: http://backend
-          image: ghcr.io/procinger/argo-git-promoter-demo-frontend:1.163.1
+        - image: ghcr.io/procinger/argo-git-promoter-demo-frontend:1.185.1
           livenessProbe:
             exec:
               command:
@@ -248,6 +253,16 @@ spec:
             requests:
               cpu: 200m
               memory: 128Mi
+          volumeMounts:
+            - mountPath: /etc/pod-labels
+              name: pod-labels
+      volumes:
+        - downwardAPI:
+            items:
+              - fieldRef:
+                  fieldPath: metadata.labels
+                path: labels
+          name: pod-labels
 ---
 apiVersion: networking.istio.io/v1alpha3
 kind: EnvoyFilter
@@ -283,22 +298,6 @@ kind: DestinationRule
 metadata:
   labels:
     argocd.argoproj.io/instance: argo-git-promoter-demo-test
-  name: backend
-spec:
-  host: backend
-  subsets:
-    - labels:
-        service.istio.io/canonical-revision: stable
-      name: stable
-    - labels:
-        service.istio.io/canonical-revision: canary
-      name: canary
----
-apiVersion: networking.istio.io/v1beta1
-kind: DestinationRule
-metadata:
-  labels:
-    argocd.argoproj.io/instance: argo-git-promoter-demo-test
   name: frontend
 spec:
   host: frontend
@@ -309,36 +308,6 @@ spec:
     - labels:
         service.istio.io/canonical-revision: canary
       name: canary
----
-apiVersion: networking.istio.io/v1beta1
-kind: VirtualService
-metadata:
-  labels:
-    argocd.argoproj.io/instance: argo-git-promoter-demo-test
-  name: backend
-spec:
-  hosts:
-    - backend
-  http:
-    - name: backend
-      route:
-        - destination:
-            host: backend
-            subset: stable
-          weight: 100
-        - destination:
-            host: backend
-            subset: canary
-          weight: 0
-    - match:
-        - headers:
-            x-canary:
-              exact: "true"
-      route:
-        - destination:
-            host: backend
-            subset: canary
-          weight: 100
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService

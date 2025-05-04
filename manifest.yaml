@@ -3,7 +3,21 @@ kind: Service
 metadata:
   labels:
     argocd.argoproj.io/instance: argo-git-promoter-demo-prod
-  name: backend
+  name: backend-canary
+spec:
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8081
+  selector:
+    app: backend
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    argocd.argoproj.io/instance: argo-git-promoter-demo-prod
+  name: backend-stable
 spec:
   ports:
     - name: http
@@ -96,9 +110,9 @@ apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
   labels:
-    app.kubernetes.io/version: 1.174.1
+    app.kubernetes.io/version: 1.177.1
     argocd.argoproj.io/instance: argo-git-promoter-demo-prod
-    version: 1.174.1
+    version: 1.177.1
   name: backend
 spec:
   analysis:
@@ -114,9 +128,11 @@ spec:
       canaryMetadata:
         labels:
           service.istio.io/canonical-revision: canary
+      canaryService: backend-canary
       stableMetadata:
         labels:
           service.istio.io/canonical-revision: stable
+      stableService: backend-stable
       steps:
         - setWeight: 50
         - pause:
@@ -125,25 +141,15 @@ spec:
             templates:
               - templateName: backend-smoke-test
         - pause: {}
-      trafficRouting:
-        istio:
-          destinationRule:
-            canarySubsetName: canary
-            name: backend
-            stableSubsetName: stable
-          virtualService:
-            name: backend
-            routes:
-              - backend
   template:
     metadata:
       labels:
         app: backend
         sidecar.istio.io/inject: "true"
-        version: 1.174.1
+        version: 1.177.1
     spec:
       containers:
-        - image: ghcr.io/procinger/argo-git-promoter-demo-backend:1.174.1
+        - image: ghcr.io/procinger/argo-git-promoter-demo-backend:1.177.1
           livenessProbe:
             exec:
               command:
@@ -173,9 +179,9 @@ apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
   labels:
-    app.kubernetes.io/version: 1.174.1
+    app.kubernetes.io/version: 1.177.1
     argocd.argoproj.io/instance: argo-git-promoter-demo-prod
-    version: 1.174.1
+    version: 1.177.1
   name: frontend
 spec:
   analysis:
@@ -190,10 +196,11 @@ spec:
     canary:
       canaryMetadata:
         labels:
-          backend_url: canary
+          backend_url: backend-canary
           service.istio.io/canonical-revision: canary
       stableMetadata:
         labels:
+          backend_url: backend-stable
           service.istio.io/canonical-revision: stable
       steps:
         - setWeight: 50
@@ -218,10 +225,10 @@ spec:
       labels:
         app: frontend
         sidecar.istio.io/inject: "true"
-        version: 1.174.1
+        version: 1.177.1
     spec:
       containers:
-        - image: ghcr.io/procinger/argo-git-promoter-demo-frontend:1.174.1
+        - image: ghcr.io/procinger/argo-git-promoter-demo-frontend:1.177.1
           livenessProbe:
             exec:
               command:
@@ -291,22 +298,6 @@ kind: DestinationRule
 metadata:
   labels:
     argocd.argoproj.io/instance: argo-git-promoter-demo-prod
-  name: backend
-spec:
-  host: backend
-  subsets:
-    - labels:
-        service.istio.io/canonical-revision: stable
-      name: stable
-    - labels:
-        service.istio.io/canonical-revision: canary
-      name: canary
----
-apiVersion: networking.istio.io/v1beta1
-kind: DestinationRule
-metadata:
-  labels:
-    argocd.argoproj.io/instance: argo-git-promoter-demo-prod
   name: frontend
 spec:
   host: frontend
@@ -317,36 +308,6 @@ spec:
     - labels:
         service.istio.io/canonical-revision: canary
       name: canary
----
-apiVersion: networking.istio.io/v1beta1
-kind: VirtualService
-metadata:
-  labels:
-    argocd.argoproj.io/instance: argo-git-promoter-demo-prod
-  name: backend
-spec:
-  hosts:
-    - backend
-  http:
-    - name: backend
-      route:
-        - destination:
-            host: backend
-            subset: stable
-          weight: 100
-        - destination:
-            host: backend
-            subset: canary
-          weight: 0
-    - match:
-        - headers:
-            x-canary:
-              exact: "true"
-      route:
-        - destination:
-            host: backend
-            subset: canary
-          weight: 100
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService

@@ -367,7 +367,7 @@ spec:
   gateways:
     - istio-gateway/non-tls-gateway
   hosts:
-    - argo-demo.kubedev.net
+    - argo-demo-dev.kubedev.net
   http:
     - name: ingress
       route:

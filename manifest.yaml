@@ -246,6 +246,9 @@ spec:
             requests:
               cpu: 200m
               memory: 128Mi
+          volumeMounts:
+            - mountPath: /etc/canary
+              name: canary
       volumes:
         - downwardAPI:
             items:

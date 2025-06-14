@@ -1,8 +1,8 @@
 apiVersion: v1
 kind: Service
 metadata:
-  labels:
-    argocd.argoproj.io/instance: argo-git-promoter-demo-test
+  annotations:
+    argocd.argoproj.io/tracking-id: argo-git-promoter-demo-test:/Service:/backend-canary
   name: backend-canary
 spec:
   ports:
@@ -15,8 +15,8 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  labels:
-    argocd.argoproj.io/instance: argo-git-promoter-demo-test
+  annotations:
+    argocd.argoproj.io/tracking-id: argo-git-promoter-demo-test:/Service:/backend-stable
   name: backend-stable
 spec:
   ports:
@@ -29,8 +29,8 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  labels:
-    argocd.argoproj.io/instance: argo-git-promoter-demo-test
+  annotations:
+    argocd.argoproj.io/tracking-id: argo-git-promoter-demo-test:/Service:/frontend
   name: frontend
 spec:
   ports:
@@ -43,8 +43,8 @@ spec:
 apiVersion: argoproj.io/v1alpha1
 kind: AnalysisTemplate
 metadata:
-  labels:
-    argocd.argoproj.io/instance: argo-git-promoter-demo-test
+  annotations:
+    argocd.argoproj.io/tracking-id: argo-git-promoter-demo-test:argoproj.io/AnalysisTemplate:/backend-smoke-test
   name: backend-smoke-test
 spec:
   metrics:
@@ -76,8 +76,8 @@ spec:
 apiVersion: argoproj.io/v1alpha1
 kind: AnalysisTemplate
 metadata:
-  labels:
-    argocd.argoproj.io/instance: argo-git-promoter-demo-test
+  annotations:
+    argocd.argoproj.io/tracking-id: argo-git-promoter-demo-test:argoproj.io/AnalysisTemplate:/frontend-smoke-test
   name: frontend-smoke-test
 spec:
   metrics:
@@ -109,10 +109,11 @@ spec:
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
+  annotations:
+    argocd.argoproj.io/tracking-id: argo-git-promoter-demo-test:argoproj.io/Rollout:/backend
   labels:
-    app.kubernetes.io/version: 1.188.1
-    argocd.argoproj.io/instance: argo-git-promoter-demo-test
-    version: 1.188.1
+    app.kubernetes.io/version: 1.189.1
+    version: 1.189.1
   name: backend
 spec:
   analysis:
@@ -146,10 +147,10 @@ spec:
       labels:
         app: backend
         sidecar.istio.io/inject: "true"
-        version: 1.188.1
+        version: 1.189.1
     spec:
       containers:
-        - image: ghcr.io/procinger/argo-git-promoter-demo-backend:1.188.1
+        - image: ghcr.io/procinger/argo-git-promoter-demo-backend:1.189.1
           livenessProbe:
             exec:
               command:
@@ -178,10 +179,11 @@ spec:
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
+  annotations:
+    argocd.argoproj.io/tracking-id: argo-git-promoter-demo-test:argoproj.io/Rollout:/frontend
   labels:
-    app.kubernetes.io/version: 1.188.1
-    argocd.argoproj.io/instance: argo-git-promoter-demo-test
-    version: 1.188.1
+    app.kubernetes.io/version: 1.189.1
+    version: 1.189.1
   name: frontend
 spec:
   analysis:
@@ -225,10 +227,10 @@ spec:
       labels:
         app: frontend
         sidecar.istio.io/inject: "true"
-        version: 1.188.1
+        version: 1.189.1
     spec:
       containers:
-        - image: ghcr.io/procinger/argo-git-promoter-demo-frontend:1.188.1
+        - image: ghcr.io/procinger/argo-git-promoter-demo-frontend:1.189.1
           livenessProbe:
             exec:
               command:
@@ -267,8 +269,8 @@ spec:
 apiVersion: networking.istio.io/v1alpha3
 kind: EnvoyFilter
 metadata:
-  labels:
-    argocd.argoproj.io/instance: argo-git-promoter-demo-test
+  annotations:
+    argocd.argoproj.io/tracking-id: argo-git-promoter-demo-test:networking.istio.io/EnvoyFilter:/forward-x-canary-header
   name: forward-x-canary-header
 spec:
   configPatches:
@@ -296,8 +298,8 @@ spec:
 apiVersion: networking.istio.io/v1beta1
 kind: DestinationRule
 metadata:
-  labels:
-    argocd.argoproj.io/instance: argo-git-promoter-demo-test
+  annotations:
+    argocd.argoproj.io/tracking-id: argo-git-promoter-demo-test:networking.istio.io/DestinationRule:/frontend
   name: frontend
 spec:
   host: frontend
@@ -312,8 +314,8 @@ spec:
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
-  labels:
-    argocd.argoproj.io/instance: argo-git-promoter-demo-test
+  annotations:
+    argocd.argoproj.io/tracking-id: argo-git-promoter-demo-test:networking.istio.io/VirtualService:/frontend-ingress
   name: frontend-ingress
 spec:
   gateways:
